@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>wo</title>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <script src="http://code.jquery.com/jquery-2.1.1.min.js"></script>
+</head>
+<body>
+    <div id="what">
+        <p>What?</p>
+        <!--<input type="text" name="search"/>-->
+        <input type="image" src="icons/grocery-24.svg" id="what-sm" title="supermarket" />
+        <input type="image" src="icons/restaurant-24.svg" id="what-rest" title="restaurant" />
+        <input type="image" src="icons/fast-food-24.svg" id="what-ff" title="restaurant" />
+        <input type="image" src="icons/bank-24.svg" id="what-atm" title="restaurant" />
+        <input type="image" src="icons/village-24.svg" id="what-…" title="…" />
+    </div>
+    <div id="where" style="display:none;">
+        <p>Where?</p>
+        <svg width="200" height="200" id="windrose">
+          <g transform="scale(0.5 0.5) translate(0,-652.36218)">
+            <g transform="matrix(0.99997029,0,0,0.99997046,0,0.031091)">
+              <path
+                 id="windrose-N"
+                 transform="translate(0,652.36218)"
+                 d="m 200,0.875 c -47.96673,0 -91.97036,16.966752 -126.34375,45.21875 l 96.03125,114.4375 c 8.39552,-6.45641 18.90274,-10.3125 30.3125,-10.3125 11.41475,0 21.91456,3.85037 30.3125,10.3125 L 326.34375,46.09375 C 291.96783,17.839214 247.96673,0.875 200,0.875 z"
+                 style="fill:#999999;fill-opacity:1;stroke:#565656;stroke-width:1.7736243;stroke-opacity:1" />
+              <path
+                 id="windrose-S"
+                 d="m 199.99956,1051.4754 c -47.96673,0 -91.97036,-16.9667 -126.343748,-45.2187 L 169.68706,891.81916 c 8.39552,6.4564 18.90274,10.3125 30.3125,10.3125 11.41475,0 21.91456,-3.8504 30.3125,-10.3125 l 96.03125,114.43754 c -34.37592,28.2545 -78.37702,45.2187 -126.34375,45.2187 z"
+                 style="fill:#999999;fill-opacity:1;stroke:#565656;stroke-width:1.7736243;stroke-opacity:1" />
+              <g transform="matrix(0,1,-1,0,1102.3902,813.45599)">
+                <path
+                   id="windrose-E"
+                   style="fill:#999999;fill-opacity:1;stroke:#565656;stroke-width:1.7736243;stroke-opacity:1"
+                   d="m 38.906628,703.26514 c -47.9667296,0 -91.97036,16.96675 -126.343749,45.21875 l 96.0312494,114.4375 c 8.3955196,-6.45641 18.9027396,-10.3125 30.3124996,-10.3125 11.41475,0 21.91456,3.85037 30.3125,10.3125 L 165.25038,748.48389 C 130.87446,720.22936 86.873358,703.26514 38.906628,703.26514 z"
+                   id="path4003-5" />
+                <path
+                   id="windrose-W"
+                   style="fill:#999999;fill-opacity:1;stroke:#565656;stroke-width:1.7736243;stroke-opacity:1"
+                   d="m 38.906188,1101.5034 c -47.9667296,0 -91.97036,-16.9667 -126.343747,-45.2187 L 8.5936884,941.84712 c 8.3955196,6.4564 18.9027396,10.3125 30.3124996,10.3125 11.41475,0 21.91456,-3.8504 30.3125,-10.3125 l 96.031252,114.43758 c -34.37592,28.2545 -78.377022,45.2187 -126.343752,45.2187 z" />
+              </g>
+            </g>
+          </g>
+        </svg>
+        <br>
+        <input type="submit" id="where-go" value="↓" />
+    </div>
+    <div id="results" style="display:none;">
+        <p>Results</p>
+        <ul></ul>
+    </div>
+    <script>
+      var what;
+      $("#what input").on("click", function(e) {
+        what = e.target.id.replace('what-','');
+        console.log(what);
+        $("#where").show();
+        $("#what input").attr("disabled", "yes");
+        $("#what input").css("opacity", "0.4");
+        $("#what input#"+e.target.id).css("opacity", "1");
+      });
+      var headings = [];
+      $("#windrose path").on("click", function(e) {
+        $(e.target).css("fill", "red");
+        headings.push(e.target.id.replace('windrose-',''));
+        console.log(headings);
+      });
+      var loc = [47.0659194, 15.4663341];
+      $("#where-go").on("click", function(e) {
+        var dist = 800;
+        var tags;
+        switch (what) {
+        case "sm":
+            tags = "[amenity=supermarket]";
+        break;
+        case "rest":
+            tags = "[amenity=restaurant]";
+        break;
+        case "ff":
+            tags = "[amenity=fast_food]";
+        break;
+        case "atm":
+            tags = ["[amenity=atm]","[amenity=bank][atm=yes]"];
+        break;
+        }
+        var query = "";
+        query += "[out:xml][timeout:20];";
+        query += "(";
+        if (!$.isArray(tags)) tags = [];
+        tags.forEach(function(t) {
+            query +=   "node"+t+"(around:"+dist+","+loc.join(',')+");"
+            query +=   "way" +t+"(around:"+dist+","+loc.join(',')+");"
+            query +=   "rel" +t+"(around:"+dist+","+loc.join(',')+");"
+        });
+        query += ");";
+        query += "out tags center;";
+        $.ajax("http://overpass-api.de/api/interpreter", {
+            type: "POST",
+            data: {data: query},
+            success: function(data, textStatus, jqXHR) {
+                console.log(data);
+                $("#results").show();
+                $("node,way,relation", data).each(function(i,x) {
+                    function bearing(lat1,lng1,lat2,lng2) {
+                        //http://stackoverflow.com/a/11415329/1627467
+                        function _toDeg(rad) {
+                            return rad * 180 / Math.PI;
+                        }
+                        var dLon = (lng2-lng1);
+                        var y = Math.sin(dLon) * Math.cos(lat2);
+                        var x = Math.cos(lat1)*Math.sin(lat2) - Math.sin(lat1)*Math.cos(lat2)*Math.cos(dLon);
+                        var brng = _toDeg(Math.atan2(y, x));
+                        return 360 - ((brng + 360) % 360);
+                    }
+                    function getDistanceFromLatLonInKm(lat1,lon1,lat2,lon2) {
+                        function deg2rad(deg) {
+                          return deg * (Math.PI/180)
+                        }
+                        var R = 6371; // Radius of the earth in km
+                        var dLat = deg2rad(lat2-lat1);  // deg2rad below
+                        var dLon = deg2rad(lon2-lon1); 
+                        var a = 
+                            Math.sin(dLat/2) * Math.sin(dLat/2) +
+                            Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+                            Math.sin(dLon/2) * Math.sin(dLon/2)
+                        ; 
+                        var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+                        var d = R * c; // Distance in km
+                        return d;
+                    }
+
+                    var coords = x.tagName == "node" ? $(x) : $("center", x);
+                    coords = [coords.attr("lat"), coords.attr("lon")];
+                    var bear = bearing(loc[0],loc[1],coords[0],coords[1]);
+                    if (bear < 45) bear = "N";
+                    else if (bear < 90+45) bear = "E";
+                    else if (bear < 2*90+45) bear = "S";
+                    else if (bear < 3*90+45) bear = "W";
+                    else bear = "N";
+                    var cl = '';
+                    if (headings.length) {
+                        if (headings.indexOf(bear) == -1)
+                            cl = 'opacity: 0.5;';
+                    }
+                    var dist = getDistanceFromLatLonInKm(loc[0],loc[1],coords[0],coords[1])*1000;
+                    $("#results ul").append(
+                        "<li style='"+cl+"'>"+
+                          "<a href='http://osm.org/"+x.tagName+"/"+x.id+"'>"+
+                            $("tag[k='name']",x).attr('v')+
+                          "</a>"+
+                          " @ "+Math.round(dist/10)*10+'m'+
+                          " ∠ "+bear+
+                        "</li>"
+                    );
+                });
+            }
+        })
+      });
+    </script>
+</body>
+</html>
